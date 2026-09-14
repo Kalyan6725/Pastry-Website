@@ -1,0 +1,35 @@
+# Angular / Node
+node_modules/
+dist/
+.angular/
+.nx/
+.cache/
+
+# Angular environment files
+.env
+.env.*
+!.env.example
+
+# Java / Spring Boot
+target/
+*.class
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets / local configuration
+application-local.properties
+application-local.yml
