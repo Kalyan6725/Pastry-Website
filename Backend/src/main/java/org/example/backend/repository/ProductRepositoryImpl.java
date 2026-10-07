@@ -22,7 +22,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
     @Override
     public Page<Product> findCustomerCatalog(String search, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, String sortBy, Pageable pageable) {
-        StringBuilder jpql = new StringBuilder("select p from Product p join p.category c ");
+        StringBuilder jpql = new StringBuilder("select p from Product p join fetch p.category c ");
         StringBuilder countQuery = new StringBuilder("select count(p.id) from Product p join p.category c ");
         Map<String, Object> params = new HashMap<>();
 
