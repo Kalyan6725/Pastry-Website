@@ -27,11 +27,13 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CategoryRepository categoryRepository;
+    private final ImageStorageService imageStorageService;
 
-    public ProductService(ProductRepository productRepository, ProductVariantRepository productVariantRepository, CategoryRepository categoryRepository) {
+    public ProductService(ProductRepository productRepository, ProductVariantRepository productVariantRepository, CategoryRepository categoryRepository, ImageStorageService imageStorageService) {
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
         this.categoryRepository = categoryRepository;
+        this.imageStorageService = imageStorageService;
     }
 
     @Transactional
@@ -41,10 +43,16 @@ public class ProductService {
         if (!category.isActive()) {
             throw new InactiveProductException("Category is inactive");
         }
+        String imageUrl = request.imageUrl();
+        if (imageUrl != null && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
+            // download and cache remote image locally and use local path
+            imageUrl = imageStorageService.storeFromUrl(imageUrl);
+        }
+
         Product product = Product.builder()
                 .name(request.name().trim())
                 .description(request.description())
-                .imageUrl(request.imageUrl())
+                .imageUrl(imageUrl)
                 .category(category)
                 .active(true)
                 .build();
@@ -63,7 +71,11 @@ public class ProductService {
         }
         product.setName(request.name().trim());
         product.setDescription(request.description());
-        product.setImageUrl(request.imageUrl());
+        String imageUrl = request.imageUrl();
+        if (imageUrl != null && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
+            imageUrl = imageStorageService.storeFromUrl(imageUrl);
+        }
+        product.setImageUrl(imageUrl);
         product.setCategory(category);
         return toResponse(productRepository.save(product));
     }
