@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, finalize, Subject, takeUntil } from 'rxjs';
 import { apiMessage, AuthService } from '../core/auth';
 import { CartService, CategoryService, ProductService } from '../core/api';
+import { resolveImageUrl } from '../core/image-url';
 import { Category, Page, Product, ProductQuery, ProductVariant } from '../core/models';
 import { ProductCard } from '../shared/product-card';
 
@@ -68,7 +69,7 @@ export class ProductsPage implements OnInit, OnDestroy {
 @Component({
   selector: 'app-product-detail-page', standalone: true, imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <section class="section detail" *ngIf="product; else state"><div class="detail-image"><img [src]="product.imageUrl" [alt]="product.name" (error)="useFallback($event)"></div><div class="detail-copy"><a class="eyebrow" routerLink="/products">← BACK TO COLLECTION</a><h1>{{ product.name }}</h1><p class="lede">{{ product.description }}</p>
+    <section class="section detail" *ngIf="product; else state"><div class="detail-image"><img [src]="imageUrl(product.imageUrl)" [alt]="product.name"></div><div class="detail-copy"><a class="eyebrow" routerLink="/products">← BACK TO COLLECTION</a><h1>{{ product.name }}</h1><p class="lede">{{ product.description }}</p>
       <ng-container *ngIf="activeVariants.length; else unavailable"><label>Choose a variant<select [(ngModel)]="selectedId"><option *ngFor="let variant of activeVariants" [ngValue]="variant.id">{{ variantLabel(variant) }} — {{ variant.price | currency:'INR' }}</option></select></label>
       <div class="detail-price">{{ selectedVariant?.price | currency:'INR':'symbol':'1.0-0' }}</div><label>Quantity<div class="stepper"><button type="button" aria-label="Decrease quantity" (click)="quantity = quantity > 1 ? quantity - 1 : 1">−</button><span aria-live="polite">{{ quantity }}</span><button type="button" aria-label="Increase quantity" (click)="quantity = quantity + 1">+</button></div></label>
       <p class="error" role="alert" aria-live="assertive" *ngIf="error">{{ error }}</p><div class="success add-success" role="status" *ngIf="message"><span>{{ message }}</span><a routerLink="/cart">View cart →</a></div><button class="primary full" type="button" [disabled]="!selectedId || adding" (click)="add()">{{ adding ? 'Adding…' : 'Add to cart' }}</button></ng-container><ng-template #unavailable><div class="unavailable"><h2>Currently unavailable</h2><p>This pastry has no active variants right now. Please check back soon or explore the rest of the collection.</p><a class="secondary" routerLink="/products">Browse other pastries</a></div></ng-template></div></section>
@@ -79,8 +80,8 @@ export class ProductDetailPage implements OnInit {
   product: Product | null = null; selectedId: number | null = null; quantity = 1; loading = true; adding = false; error = ''; message = '';
   get activeVariants(): ProductVariant[] { return this.product?.variants.filter((v) => v.active) || []; }
   get selectedVariant(): ProductVariant | undefined { return this.activeVariants.find((v) => v.id === this.selectedId); }
+  imageUrl(imageUrl: string): string { return resolveImageUrl(imageUrl); }
   ngOnInit(): void { const id = Number(this.route.snapshot.paramMap.get('id')); this.productsApi.get(id).pipe(finalize(() => this.loading = false)).subscribe({ next: (product) => { this.product = product; this.selectedId = this.activeVariants[0]?.id || null; }, error: (e: unknown) => this.error = apiMessage(e, 'Pastry not found.') }); }
   variantLabel(v: ProductVariant): string { return [v.weightInGrams ? `${v.weightInGrams}g` : '', v.flavour, v.eggType === 'EGGLESS' ? 'Eggless' : v.eggType === 'EGG' ? 'With egg' : ''].filter(Boolean).join(' · '); }
-  useFallback(event: Event): void { (event.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=80'; }
   add(): void { if (!this.auth.isCustomer()) { void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } }); return; } if (!this.selectedId) return; this.adding = true; this.error = ''; this.cart.add(this.selectedId, this.quantity).pipe(finalize(() => this.adding = false)).subscribe({ next: () => { this.message = 'Added to your cart.'; this.cart.get().subscribe(); }, error: (e: unknown) => this.error = apiMessage(e, 'Unable to add this pastry.') }); }
 }
