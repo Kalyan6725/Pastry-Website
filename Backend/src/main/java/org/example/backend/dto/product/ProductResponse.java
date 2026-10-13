@@ -6,6 +6,7 @@ public record ProductResponse(
         Long id,
         String name,
         String description,
+        String imagePublicId,
         String imageUrl,
         Long categoryId,
         String categoryName,

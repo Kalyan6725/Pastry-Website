@@ -1,12 +1,15 @@
 package org.example.backend.controller;
 
 import jakarta.validation.Valid;
+import org.example.backend.dto.product.ProductImageResponse;
 import org.example.backend.dto.product.ProductRequest;
 import org.example.backend.dto.product.ProductResponse;
 import org.example.backend.dto.product.ProductVariantRequest;
 import org.example.backend.dto.product.ProductVariantResponse;
 import org.example.backend.service.ProductService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,6 +26,11 @@ public class AdminProductController {
     @ResponseStatus(HttpStatus.CREATED)
     public ProductResponse createProduct(@Valid @RequestBody ProductRequest request) {
         return productService.createProduct(request);
+    }
+
+    @PostMapping(value = "/products/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProductImageResponse uploadProductImage(@RequestPart("file") MultipartFile file) {
+        return productService.uploadProductImage(file);
     }
 
     @PutMapping("/products/{id}")

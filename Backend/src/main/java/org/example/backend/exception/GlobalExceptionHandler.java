@@ -9,6 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
@@ -85,6 +87,11 @@ public class GlobalExceptionHandler {
                 .map(v -> v.getMessage())
                 .collect(Collectors.joining(", "));
         return build(HttpStatus.BAD_REQUEST, message.isBlank() ? "Validation failed" : message, request.getRequestURI());
+    }
+
+    @ExceptionHandler({MaxUploadSizeExceededException.class, MultipartException.class})
+    public ResponseEntity<ApiError> handleMultipart(Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "The uploaded image is invalid or too large.", request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

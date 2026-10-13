@@ -37,6 +37,7 @@ export interface Product {
   id: number;
   name: string;
   description: string | null;
+  imagePublicId: string | null;
   imageUrl: string;
   categoryId: number;
   categoryName: string;

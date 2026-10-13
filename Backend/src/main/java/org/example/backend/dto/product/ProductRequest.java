@@ -12,9 +12,11 @@ public record ProductRequest(
         @Size(max = 5000, message = "Description must be at most 5000 characters")
         String description,
 
-        @NotBlank(message = "Image URL is required")
         @Size(max = 1000, message = "Image URL must be at most 1000 characters")
         String imageUrl,
+
+        @Size(max = 255, message = "Image public ID must be at most 255 characters")
+        String imagePublicId,
 
         @NotNull(message = "Category is required")
         Long categoryId

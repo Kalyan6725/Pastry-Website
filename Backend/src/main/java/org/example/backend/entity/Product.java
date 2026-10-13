@@ -51,6 +51,10 @@ public class Product extends BaseEntity {
     @Column(nullable = false, length = 1000)
     private String imageUrl;
 
+    @Size(max = 255)
+    @Column(length = 255)
+    private String imagePublicId;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false, foreignKey = @ForeignKey(name = "fk_products_category"))

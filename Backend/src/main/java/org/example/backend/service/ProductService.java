@@ -4,9 +4,11 @@ import org.example.backend.dto.product.ProductRequest;
 import org.example.backend.dto.product.ProductResponse;
 import org.example.backend.dto.product.ProductVariantRequest;
 import org.example.backend.dto.product.ProductVariantResponse;
+import org.example.backend.dto.product.ProductImageResponse;
 import org.example.backend.entity.Category;
 import org.example.backend.entity.Product;
 import org.example.backend.entity.ProductVariant;
+import org.example.backend.exception.BadRequestException;
 import org.example.backend.exception.DuplicateResourceException;
 import org.example.backend.exception.InactiveProductException;
 import org.example.backend.exception.InactiveVariantException;
@@ -43,21 +45,26 @@ public class ProductService {
         if (!category.isActive()) {
             throw new InactiveProductException("Category is inactive");
         }
-        String imageUrl = request.imageUrl();
-        if (imageUrl != null && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
-            // download and cache remote image locally and use local path
-            imageUrl = imageStorageService.storeFromUrl(imageUrl);
-        }
+
+        String imageUrl = normalize(request.imageUrl());
+        String imagePublicId = normalize(request.imagePublicId());
+        requireImage(imageUrl, imagePublicId, true);
 
         Product product = Product.builder()
                 .name(request.name().trim())
                 .description(request.description())
+                .imagePublicId(imagePublicId)
                 .imageUrl(imageUrl)
                 .category(category)
                 .active(true)
                 .build();
-        Product saved = productRepository.save(product);
-        return toResponse(saved);
+        try {
+            Product saved = productRepository.save(product);
+            return toResponse(saved);
+        } catch (RuntimeException ex) {
+            imageStorageService.deleteProductImage(imagePublicId);
+            throw ex;
+        }
     }
 
     @Transactional
@@ -71,13 +78,41 @@ public class ProductService {
         }
         product.setName(request.name().trim());
         product.setDescription(request.description());
-        String imageUrl = request.imageUrl();
-        if (imageUrl != null && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
-            imageUrl = imageStorageService.storeFromUrl(imageUrl);
+        String previousImagePublicId = normalize(product.getImagePublicId());
+        String previousImageUrl = normalize(product.getImageUrl());
+        String imageUrl = normalize(request.imageUrl());
+        String imagePublicId = normalize(request.imagePublicId());
+        boolean legacyImage = previousImagePublicId == null && imagePublicId == null && imageUrl != null;
+        if ((imageUrl != null || imagePublicId != null)
+                && !legacyImage
+                && (imageUrl == null || imagePublicId == null)) {
+            throw new BadRequestException("Image upload must include both the Cloudinary URL and public ID.");
         }
-        product.setImageUrl(imageUrl);
+        if (imageUrl != null) {
+            product.setImageUrl(imageUrl);
+        }
+        if (imagePublicId != null) {
+            product.setImagePublicId(imagePublicId);
+        }
         product.setCategory(category);
-        return toResponse(productRepository.save(product));
+        try {
+            Product saved = productRepository.save(product);
+            if (previousImagePublicId != null && imagePublicId != null && !previousImagePublicId.equals(imagePublicId)) {
+                imageStorageService.deleteProductImage(previousImagePublicId);
+            }
+            return toResponse(saved);
+        } catch (RuntimeException ex) {
+            if (imagePublicId != null && !imagePublicId.equals(previousImagePublicId)) {
+                imageStorageService.deleteProductImage(imagePublicId);
+            }
+            if (imageUrl == null && previousImageUrl != null) {
+                product.setImageUrl(previousImageUrl);
+            }
+            if (imagePublicId == null && previousImagePublicId != null) {
+                product.setImagePublicId(previousImagePublicId);
+            }
+            throw ex;
+        }
     }
 
     @Transactional
@@ -130,6 +165,10 @@ public class ProductService {
         return toResponse(productVariantRepository.save(variant));
     }
 
+    public ProductImageResponse uploadProductImage(org.springframework.web.multipart.MultipartFile file) {
+        return imageStorageService.uploadProductImage(file);
+    }
+
     public Page<ProductResponse> browseCustomerCatalog(String search, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, String sort, Pageable pageable) {
         Page<Product> page = productRepository.findCustomerCatalog(search, categoryId, minPrice, maxPrice, sort, pageable);
         return page.map(this::toResponse);
@@ -170,12 +209,32 @@ public class ProductService {
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
+                product.getImagePublicId(),
                 product.getImageUrl(),
                 product.getCategory() != null ? product.getCategory().getId() : null,
                 product.getCategory() != null ? product.getCategory().getName() : null,
                 product.isActive(),
                 productVariantRepository.findByProductId(product.getId()).stream().map(this::toResponse).toList()
         );
+    }
+
+    private void requireImage(String imageUrl, String imagePublicId, boolean creating) {
+        boolean hasUrl = imageUrl != null;
+        boolean hasPublicId = imagePublicId != null;
+        if (hasUrl != hasPublicId) {
+            throw new BadRequestException("Image upload must include both the Cloudinary URL and public ID.");
+        }
+        if (creating && (!hasUrl || !hasPublicId)) {
+            throw new BadRequestException("Upload a product image before saving the product.");
+        }
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private ProductVariantResponse toResponse(ProductVariant variant) {

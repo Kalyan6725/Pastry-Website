@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Category, CategoryRequest, Order, OrderStatus, Page, Product, ProductRequest, ProductVariant, ProductVariantRequest } from './models';
+import { Category, CategoryRequest, Order, OrderStatus, Page, Product, ProductImageResponse, ProductRequest, ProductVariant, ProductVariantRequest } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminCategoryService {
@@ -23,6 +23,11 @@ export class AdminProductService {
     return this.http.get<Page<Product>>(`${environment.apiUrl}/products`, { params });
   }
   getVisible(id: number): Observable<Product> { return this.http.get<Product>(`${environment.apiUrl}/products/${id}`); }
+  uploadProductImage(file: File): Observable<ProductImageResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ProductImageResponse>(`${environment.apiUrl}/admin/products/image`, formData);
+  }
   create(request: ProductRequest): Observable<Product> { return this.http.post<Product>(`${environment.apiUrl}/admin/products`, request); }
   update(id: number, request: ProductRequest): Observable<Product> { return this.http.put<Product>(`${environment.apiUrl}/admin/products/${id}`, request); }
   setActive(id: number, active: boolean): Observable<Product> { return this.http.patch<Product>(`${environment.apiUrl}/admin/products/${id}/active`, null, { params: { active } }); }
