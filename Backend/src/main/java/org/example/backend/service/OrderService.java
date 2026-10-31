@@ -127,20 +127,24 @@ public class OrderService {
         return toResponse(savedOrder);
     }
 
+    @Transactional(readOnly = true)
     public Page<OrderResponse> getCustomerOrders(Long userId, Pageable pageable) {
         return orderRepository.findByCustomerId(userId, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public OrderResponse getCustomerOrder(Long userId, Long orderId) {
         Order order = orderRepository.findByIdAndCustomerId(orderId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         return toResponse(order);
     }
 
+    @Transactional(readOnly = true)
     public Page<OrderResponse> getAllOrders(Pageable pageable) {
         return orderRepository.findAll(pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         return toResponse(order);

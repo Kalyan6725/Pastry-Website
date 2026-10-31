@@ -57,7 +57,7 @@ public class ImageStorageService {
         Map<String, String> params = new LinkedHashMap<String, String>();
         params.put("folder", folder);
         params.put("overwrite", "false");
-        params.put("resource_type", "image");
+//        params.put("resource_type", "image");
         params.put("timestamp", timestamp);
         params.put("unique_filename", "true");
         params.put("use_filename", "true");
@@ -70,6 +70,10 @@ public class ImageStorageService {
                     .POST(buildMultipartBody(file, params, signature))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Status: " + response.statusCode());
+            System.out.println("Response: " + response.body());
+            System.out.println("Cloudinary error header: "
+                    + response.headers().firstValue("X-Cld-Error").orElse("Not present"));
             JsonNode body = parseJson(response.body());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new BadRequestException(extractErrorMessage(body, "Unable to upload the image to Cloudinary."));
@@ -158,7 +162,7 @@ public class ImageStorageService {
         writeTextPart(output, "api_key", apiKey);
         writeTextPart(output, "folder", params.get("folder"));
         writeTextPart(output, "overwrite", params.get("overwrite"));
-        writeTextPart(output, "resource_type", params.get("resource_type"));
+//        writeTextPart(output, "resource_type", params.get("resource_type"));
         writeTextPart(output, "timestamp", params.get("timestamp"));
         writeTextPart(output, "unique_filename", params.get("unique_filename"));
         writeTextPart(output, "use_filename", params.get("use_filename"));

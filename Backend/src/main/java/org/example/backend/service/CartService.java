@@ -37,6 +37,7 @@ public class CartService {
         this.productService = productService;
     }
 
+    @Transactional(readOnly = true)
     public CartResponse getMyCart(Long userId) {
         Cart cart = getOrCreateCart(userId);
         List<CartItemResponse> items = cartItemRepository.findByCartId(cart.getId()).stream()
