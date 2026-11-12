@@ -42,16 +42,19 @@ public class OrderService {
     private final CartService cartService;
     private final UserRepository userRepository;
     private final PaymentService paymentService;
+    private final DeliveryFeeService deliveryFeeService;
 
     public OrderService(OrderRepository orderRepository, AddressRepository addressRepository,
                         CartItemRepository cartItemRepository, CartService cartService,
-                        UserRepository userRepository, PaymentService paymentService) {
+                        UserRepository userRepository, PaymentService paymentService,
+                        DeliveryFeeService deliveryFeeService) {
         this.orderRepository = orderRepository;
         this.addressRepository = addressRepository;
         this.cartItemRepository = cartItemRepository;
         this.cartService = cartService;
         this.userRepository = userRepository;
         this.paymentService = paymentService;
+        this.deliveryFeeService = deliveryFeeService;
     }
 
     @Transactional
@@ -83,7 +86,7 @@ public class OrderService {
             subtotal = subtotal.add(variant.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         }
 
-        BigDecimal deliveryFee = subtotal.compareTo(new BigDecimal("1000.00")) >= 0 ? BigDecimal.ZERO : new BigDecimal("79.00");
+        BigDecimal deliveryFee = deliveryFeeService.currentAmount();
         BigDecimal totalAmount = subtotal.add(deliveryFee);
 
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -121,7 +124,7 @@ public class OrderService {
         }
 
         orderRepository.save(savedOrder);
-        paymentService.createPaymentForOrder(savedOrder.getId());
+        paymentService.createPaymentForOrder(savedOrder.getId(), request.paymentMethod());
         cartItemRepository.deleteByCartId(cart.getId());
 
         return toResponse(savedOrder);
@@ -130,6 +133,17 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<OrderResponse> getCustomerOrders(Long userId, Pageable pageable) {
         return orderRepository.findByCustomerId(userId, pageable).map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getCustomerOrders(Long userId, OrderStatus status, Pageable pageable) {
+        return orderRepository.findByCustomerIdAndStatus(userId, status, pageable).map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getProcessingOrders(Long userId, Pageable pageable) {
+        return orderRepository.findByCustomerIdAndStatusNotIn(
+                userId, List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED), pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -188,6 +202,7 @@ public class OrderService {
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
+                order.getCustomer().getName(),
                 order.getStatus(),
                 order.getSubtotal(),
                 order.getDeliveryFee(),

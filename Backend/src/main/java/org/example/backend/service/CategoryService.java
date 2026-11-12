@@ -54,6 +54,10 @@ public class CategoryService {
         return categoryRepository.findByActiveTrueOrderByNameAsc().stream().map(this::toResponse).toList();
     }
 
+    public List<CategoryResponse> getAllCategories() {
+        return categoryRepository.findAllByOrderByNameAsc().stream().map(this::toResponse).toList();
+    }
+
     public CategoryResponse getActiveCategory(Long id) {
         Category category = categoryRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));

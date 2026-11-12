@@ -90,7 +90,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/products", "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/products", "/api/products/**", "/api/delivery-fee").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/addresses/**", "/api/cart/**", "/api/orders/**", "/api/payments/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.example.backend.dto.order.OrderRequest;
 import org.example.backend.dto.order.OrderResponse;
 import org.example.backend.dto.order.OrderStatusRequest;
+import org.example.backend.enums.OrderStatus;
 import org.example.backend.security.UserPrincipal;
 import org.example.backend.service.OrderService;
 import org.springframework.data.domain.Page;
@@ -29,8 +30,16 @@ public class OrderController {
     }
 
     @GetMapping("/orders")
-    public Page<OrderResponse> getOrders(@AuthenticationPrincipal UserPrincipal principal, Pageable pageable) {
-        return orderService.getCustomerOrders(principal.getId(), pageable);
+    public Page<OrderResponse> getOrders(@AuthenticationPrincipal UserPrincipal principal,
+                                         @RequestParam(required = false) String status,
+                                         Pageable pageable) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
+            return orderService.getCustomerOrders(principal.getId(), pageable);
+        }
+        if ("PROCESSING".equalsIgnoreCase(status)) {
+            return orderService.getProcessingOrders(principal.getId(), pageable);
+        }
+        return orderService.getCustomerOrders(principal.getId(), OrderStatus.valueOf(status.toUpperCase()), pageable);
     }
 
     @GetMapping("/orders/{id}")

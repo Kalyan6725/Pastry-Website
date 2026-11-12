@@ -13,5 +13,6 @@ export interface ProductRequest { name: string; description: string; imageUrl: s
 export interface ProductImageResponse { imagePublicId: string; imageUrl: string; }
 export interface ProductVariantRequest { weightInGrams: number | null; flavour: string; eggType: EggType | null; price: number; }
 export interface OrderItem { id: number; productName: string; weightInGrams: number | null; flavour: string | null; eggType: EggType | null; quantity: number; unitPrice: number; }
-export interface Order { id: number; orderNumber: string; status: OrderStatus; subtotal: number; deliveryFee: number; totalAmount: number; deliveryAddressLine1: string; deliveryCity: string; deliveryPhone: string; createdAt: string; items: OrderItem[]; }
+export interface Order { id: number; orderNumber: string; customerName: string; status: OrderStatus; subtotal: number; deliveryFee: number; totalAmount: number; deliveryAddressLine1: string; deliveryCity: string; deliveryPhone: string; createdAt: string; items: OrderItem[]; }
 export interface Payment { id: number; orderId: number; amount: number; status: string; paymentMethod: string; gateway: string; gatewayOrderId: string; gatewayPaymentId: string | null; }
+export interface DeliveryFee { amount: number; }

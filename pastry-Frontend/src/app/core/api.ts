@@ -1,8 +1,11 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Address, AddressRequest, Cart, CartItem, Category, Order, Page, Product, ProductQuery } from './models';
+import { Address, AddressRequest, Cart, CartItem, Category, DeliveryFee, Order, OrderStatus, Page, PaymentMethod, Product, ProductQuery } from './models';
+
+type SerializedPage<T> = Page<T> & { page?: Omit<Page<T>, 'content'> };
+const normalizePage = <T>(response: SerializedPage<T>): Page<T> => response.page ? { ...response, ...response.page } : response;
 
 @Injectable({ providedIn: 'root' })
 export class CategoryService {
@@ -18,7 +21,7 @@ export class ProductService {
     Object.entries(query).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
     });
-    return this.http.get<Page<Product>>(`${environment.apiUrl}/products`, { params });
+    return this.http.get<SerializedPage<Product>>(`${environment.apiUrl}/products`, { params }).pipe(map(normalizePage));
   }
   get(id: number): Observable<Product> { return this.http.get<Product>(`${environment.apiUrl}/products/${id}`); }
 }
@@ -32,12 +35,19 @@ export class CartService {
   add(productVariantId: number, quantity: number): Observable<CartItem> {
     return this.http.post<CartItem>(`${environment.apiUrl}/cart/items`, { productVariantId, quantity });
   }
+
   update(id: number, quantity: number): Observable<CartItem> {
     return this.http.put<CartItem>(`${environment.apiUrl}/cart/items/${id}`, { quantity });
   }
   remove(id: number): Observable<void> { return this.http.delete<void>(`${environment.apiUrl}/cart/items/${id}`); }
   sync(cart: Cart): void { this.countSubject.next(cart.items.reduce((sum, item) => sum + item.quantity, 0)); }
   clearCount(): void { this.countSubject.next(0); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class DeliveryFeeService {
+  private readonly http = inject(HttpClient);
+  get(): Observable<DeliveryFee> { return this.http.get<DeliveryFee>(`${environment.apiUrl}/delivery-fee`); }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -53,10 +63,12 @@ export class AddressService {
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly http = inject(HttpClient);
-  list(page = 0, size = 10): Observable<Page<Order>> {
-    return this.http.get<Page<Order>>(`${environment.apiUrl}/orders`, { params: { page, size } });
+  list(page = 0, size = 10, status?: OrderStatus | 'PROCESSING'): Observable<Page<Order>> {
+    const params: Record<string, string | number> = { page, size };
+    if (status) params['status'] = status;
+    return this.http.get<SerializedPage<Order>>(`${environment.apiUrl}/orders`, { params }).pipe(map(normalizePage));
   }
   get(id: number): Observable<Order> { return this.http.get<Order>(`${environment.apiUrl}/orders/${id}`); }
-  create(addressId: number): Observable<Order> { return this.http.post<Order>(`${environment.apiUrl}/orders`, { addressId }); }
+  create(addressId: number, paymentMethod: PaymentMethod): Observable<Order> { return this.http.post<Order>(`${environment.apiUrl}/orders`, { addressId, paymentMethod }); }
   cancel(id: number): Observable<Order> { return this.http.post<Order>(`${environment.apiUrl}/orders/${id}/cancel`, {}); }
 }

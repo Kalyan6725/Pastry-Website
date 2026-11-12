@@ -8,6 +8,7 @@ export type OrderStatus =
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
   | 'CANCELLED';
+export type PaymentMethod = 'COD' | 'UPI' | 'CARD' | 'NET_BANKING' | 'WALLET';
 
 export interface ApiError { timestamp: string; status: number; message: string; path: string; }
 export interface Page<T> {
@@ -63,6 +64,7 @@ export interface CartItem {
   lineTotal: number;
 }
 export interface Cart { id: number; items: CartItem[]; subtotal: number; }
+export interface DeliveryFee { amount: number; }
 export interface AddressRequest {
   label: string;
   phone: string;
@@ -87,6 +89,7 @@ export interface OrderItem {
 export interface Order {
   id: number;
   orderNumber: string;
+  customerName: string;
   status: OrderStatus;
   subtotal: number;
   deliveryFee: number;

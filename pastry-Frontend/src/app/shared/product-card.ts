@@ -15,7 +15,7 @@ import { Product } from '../core/models';
           sizes="(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 25vw"
           [alt]="product.name"
           width="640"
-          height="480"
+          height="640"
           loading="lazy"
           decoding="async">
       </a>

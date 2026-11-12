@@ -25,7 +25,7 @@ public class PaymentController {
     @PostMapping("/orders/{orderId}/payments")
     @ResponseStatus(HttpStatus.CREATED)
     public PaymentResponse createPayment(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long orderId, @Valid @RequestBody PaymentRequest request) {
-        return paymentService.createPaymentForOrder(orderId);
+        return paymentService.createPaymentForOrder(orderId, request.paymentMethod());
     }
 
     @PostMapping("/payments/{paymentId}/retry")

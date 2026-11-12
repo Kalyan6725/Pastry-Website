@@ -7,6 +7,8 @@ import org.example.backend.service.CategoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/admin")
 public class AdminCategoryController {
@@ -15,6 +17,11 @@ public class AdminCategoryController {
 
     public AdminCategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
+    }
+
+    @GetMapping("/categories")
+    public List<CategoryResponse> listCategories() {
+        return categoryService.getAllCategories();
     }
 
     @PostMapping("/categories")

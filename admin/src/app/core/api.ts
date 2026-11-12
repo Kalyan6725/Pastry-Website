@@ -1,13 +1,17 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Category, CategoryRequest, Order, OrderStatus, Page, Product, ProductImageResponse, ProductRequest, ProductVariant, ProductVariantRequest } from './models';
+
+type SerializedPage<T> = Page<T> & { page?: Omit<Page<T>, 'content'> };
+const normalizePage = <T>(response: SerializedPage<T>): Page<T> => response.page ? { ...response, ...response.page } : response;
 
 @Injectable({ providedIn: 'root' })
 export class AdminCategoryService {
   private readonly http = inject(HttpClient);
   listVisible(): Observable<Category[]> { return this.http.get<Category[]>(`${environment.apiUrl}/categories`); }
+  listAll(): Observable<Category[]> { return this.http.get<Category[]>(`${environment.apiUrl}/admin/categories`); }
   create(request: CategoryRequest): Observable<Category> { return this.http.post<Category>(`${environment.apiUrl}/admin/categories`, request); }
   update(id: number, request: CategoryRequest): Observable<Category> { return this.http.put<Category>(`${environment.apiUrl}/admin/categories/${id}`, request); }
   setActive(id: number, active: boolean): Observable<Category> { return this.http.patch<Category>(`${environment.apiUrl}/admin/categories/${id}/active`, null, { params: { active } }); }
@@ -20,7 +24,7 @@ export class AdminProductService {
     let params = new HttpParams().set('page', page).set('size', size).set('sort', 'newest');
     if (search.trim()) params = params.set('search', search.trim());
     if (categoryId) params = params.set('categoryId', categoryId);
-    return this.http.get<Page<Product>>(`${environment.apiUrl}/products`, { params });
+    return this.http.get<SerializedPage<Product>>(`${environment.apiUrl}/products`, { params }).pipe(map(normalizePage));
   }
   getVisible(id: number): Observable<Product> { return this.http.get<Product>(`${environment.apiUrl}/products/${id}`); }
   uploadProductImage(file: File): Observable<ProductImageResponse> {
@@ -39,7 +43,14 @@ export class AdminProductService {
 @Injectable({ providedIn: 'root' })
 export class AdminOrderService {
   private readonly http = inject(HttpClient);
-  list(page = 0, size = 15): Observable<Page<Order>> { return this.http.get<Page<Order>>(`${environment.apiUrl}/admin/orders`, { params: { page, size, sort: 'createdAt,desc' } }); }
+  list(page = 0, size = 15): Observable<Page<Order>> { return this.http.get<SerializedPage<Order>>(`${environment.apiUrl}/admin/orders`, { params: { page, size, sort: 'createdAt,desc' } }).pipe(map(normalizePage)); }
   get(id: number): Observable<Order> { return this.http.get<Order>(`${environment.apiUrl}/admin/orders/${id}`); }
   updateStatus(id: number, status: OrderStatus): Observable<Order> { return this.http.patch<Order>(`${environment.apiUrl}/admin/orders/${id}/status`, { status }); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class AdminDeliveryFeeService {
+  private readonly http = inject(HttpClient);
+  get(): Observable<{ amount: number }> { return this.http.get<{ amount: number }>(`${environment.apiUrl}/delivery-fee`); }
+  update(amount: number): Observable<{ amount: number }> { return this.http.put<{ amount: number }>(`${environment.apiUrl}/admin/delivery-fee`, { amount }); }
 }

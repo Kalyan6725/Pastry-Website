@@ -32,15 +32,16 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentResponse createPaymentForOrder(Long orderId) {
+    public PaymentResponse createPaymentForOrder(Long orderId, PaymentMethod paymentMethod) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        PaymentMethod selectedMethod = paymentMethod == PaymentMethod.COD ? PaymentMethod.COD : paymentMethod;
         Payment payment = Payment.builder()
                 .order(order)
                 .amount(order.getTotalAmount())
                 .status(PaymentStatus.PENDING)
-                .paymentMethod(PaymentMethod.UPI)
-                .gateway(PaymentGateway.RAZORPAY)
-                .gatewayOrderId("RAZORPAY-" + UUID.randomUUID())
+                .paymentMethod(selectedMethod)
+                .gateway(selectedMethod == PaymentMethod.COD ? PaymentGateway.COD : PaymentGateway.RAZORPAY)
+                .gatewayOrderId((selectedMethod == PaymentMethod.COD ? "COD-" : "RAZORPAY-") + UUID.randomUUID())
                 .build();
         Payment saved = paymentRepository.save(payment);
         return toResponse(saved);

@@ -7,7 +7,7 @@ export function resolveImageUrl(imageUrl: string | null | undefined): string {
   return `${backendOrigin}/${imageUrl.replace(/^\/+/, '')}`;
 }
 
-export function cloudinaryImageUrl(imageUrl: string | null | undefined, width: number, height = Math.round(width * 0.75)): string {
+export function cloudinaryImageUrl(imageUrl: string | null | undefined, width: number, height = width): string {
   const resolved = resolveImageUrl(imageUrl);
   if (!/\/image\/upload\//i.test(resolved)) return resolved;
   return resolved.replace('/image/upload/', `/image/upload/f_auto,q_auto,c_fill,g_auto,w_${width},h_${height}/`);
